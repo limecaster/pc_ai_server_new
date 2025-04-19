@@ -1,4 +1,4 @@
-Theo dõi đơn hàng
+Theo dõi, tra cứu, trạng thái, track đơn hàng
 
 Bạn có thể theo dõi đơn hàng của mình qua các bước sau:
 1. Truy cập trang "Theo dõi đơn hàng".

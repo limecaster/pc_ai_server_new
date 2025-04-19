@@ -5,6 +5,7 @@ from langchain.text_splitter import CharacterTextSplitter
 from transformers import AutoModel, AutoTokenizer
 import torch
 import chromadb
+import uuid
 
 class DocumentLoader:
     def __init__(self, folder_path):
@@ -14,6 +15,7 @@ class DocumentLoader:
         """Read all .txt and .docx files from a folder"""
         texts = []
         for filename in os.listdir(self.folder_path):
+            print(filename)
             file_path = os.path.join(self.folder_path, filename)
             if filename.endswith(".txt"):
                 with open(file_path, "r", encoding="utf-8") as f:
@@ -46,24 +48,50 @@ class EmbeddingModel:
 class FAQDatabase:
     def __init__(self, db_path="./chroma_faq_db"):
         self.chroma_client = chromadb.PersistentClient(path=db_path)
+        # Initialize or reuse collection without clearing on init
         self.faq_collection = self.chroma_client.get_or_create_collection(name="faq")
 
     def store_embeddings(self, chunks, embeddings):
-        for i, (chunk, embedding) in enumerate(zip(chunks, embeddings)):
-            self.faq_collection.add(ids=[str(i)], embeddings=[embedding], metadatas=[{"text": chunk}])
+        # Clear existing embeddings to avoid duplicates
+        try:
+            self.faq_collection.delete(where={})
+        except Exception:
+            pass
+        for chunk, embedding in zip(chunks, embeddings):
+            uid = str(uuid.uuid4())
+            # Store chunk text directly for retrieval
+            self.faq_collection.add(ids=[uid], embeddings=[embedding], documents=[chunk])
 
-    def retrieve_answer(self, question_embedding, top_k=1):
-        results = self.faq_collection.query(query_embeddings=[question_embedding], n_results=top_k)
-        if results["metadatas"]:
-            return results["metadatas"][0][0]["text"]
-        else:
-            return "Xin lỗi, tôi không tìm thấy câu trả lời."
+    def retrieve_answer(self, question_embedding, top_k=3):
+        # Retrieve the single most relevant FAQ chunk
+        results = self.faq_collection.query(
+            query_embeddings=[question_embedding],
+            n_results=1,
+            include=["documents"]
+        )
+        docs = results.get("documents", [[]])[0]
+        if docs:
+            return docs[0]
+        return "Xin lỗi, tôi không tìm thấy câu trả lời."
+
+# Global embedder and FAQ DB cache to avoid reloading on each request
+_embedder = EmbeddingModel()
+_faq_db = None
 
 def retrieve_faq_answer(question):
-    embedder = EmbeddingModel()
-    question_embedding = embedder.encode_text(question)
-    faq_db = FAQDatabase()
-    return faq_db.retrieve_answer(question_embedding)
+    global _faq_db
+    if _faq_db is None:
+        # load and embed FAQ documents once
+        loader = DocumentLoader(folder_path="documents")
+        texts = loader.load_documents()
+        processor = TextProcessor()
+        chunks = processor.split_texts(texts)
+        embeddings = [_embedder.encode_text(c) for c in chunks]
+        _faq_db = FAQDatabase()
+        _faq_db.store_embeddings(chunks, embeddings)
+    # encode and retrieve
+    question_embedding = _embedder.encode_text(question)
+    return _faq_db.retrieve_answer(question_embedding)
 
 def main():
     # Load documents

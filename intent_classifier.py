@@ -16,7 +16,6 @@ class IntentClassifier:
             ],
             "auto_build": [
                 "Gợi ý giúp tôi một cấu hình PC chơi game",
-                "PC giá 20 triệu tốt nhất là gì?",
                 "Máy tính nào phù hợp để chỉnh sửa video?",
                 "Gợi ý cấu hình máy tính văn phòng",
                 "PC để chơi game AMD Ryzen 5 7600X, 2x16GB DDR5-6000Mhz, RTX 3070, khoảng 30 triệu",
@@ -26,7 +25,7 @@ class IntentClassifier:
                 "Tôi muốn build PC chơi game, giá khoảng 25 triệu",
                 "PC chơi game giá rẻ, giá khoảng 10 triệu",
                 "Máy tính bàn để chinh sửa video, giá khoảng 20 triệu",
-                "PC chơi game 25tr với i7-9700k"
+                "PC chơi game 25tr với i7-9700kf"
             ],
             "compatibility": [
                 "Main này có chạy được Ryzen 7 không?",
@@ -42,12 +41,12 @@ class IntentClassifier:
                 "Cách chọn RAM cho PC",
                 "Cách chọn card đồ họa",
                 "Cách chọn CPU",
+                "Theo dõi đơn hàng"
                 "Làm sao để chọn ổ cứng SSD?",
                 "Có hỗ trợ trả góp không?",
                 "Cửa hàng có mấy chi nhánh?",
                 "Chính sách bảo hành của cửa hàng",
                 "Có nhận ship hàng không?",
-                "Cửa hàng B là gì?",
                 "Về cửa hàng B",
                 "Thông tin về cửa hàng",
                 "Làm thế nào để liên hệ hỗ trợ?",
@@ -61,6 +60,13 @@ class IntentClassifier:
                 "Ai là chủ sở hữu cửa hàng?",
                 "Có phải là cửa hàng B không?",
                 "CEO là ai?"
+                "Giới thiệu cửa hàng",
+                "Phương thức thanh toán",
+                "Thanh toán online",
+                "Phí vận chuyển",
+                "Chính sách vận chuyển, giao hàng",
+                "Chính sách thanh toán",
+                "Thanh toán tiền mặt"
             ]
         }
 
