@@ -1,5 +1,6 @@
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
+from typing import List
 import requests
 from langchain_ollama import ChatOllama
 from neo4j_retriever import Neo4jRetriever
@@ -46,12 +47,14 @@ Maintain a friendly, professional, and helpful tone.
 
 class ChatRequest(BaseModel):
     message: str
+    history: List[str] = []
 
 @app.post("/client-chat")
 async def chatbot_endpoint(request: ChatRequest):
     try:
         print(request)
         user_message = request.message
+        history = request.history
 
         # Classify the user message
         intent_classifier = IntentClassifier()
@@ -109,12 +112,13 @@ async def chatbot_endpoint(request: ChatRequest):
                 # Retrieve context from FAQ database
                 faq_context = retrieve_faq_answer(user_message)
                 # Generate answer using LLM with context
-                messages = [
-                    {"role": "system", "content": SYSTEM_PROMPT},
-                    {"role": "system", "content": f"Dữ liệu tham khảo: {faq_context}"},
-                    {"role": "user", "content": user_message}
-                ]
-                print(faq_context)
+                messages = [{"role": "system", "content": SYSTEM_PROMPT}]
+                # include conversation history
+                for msg in history:
+                    messages.append({"role": "user", "content": msg})
+                # add FAQ context and current message
+                messages.append({"role": "system", "content": f"Dữ liệu tham khảo: {faq_context}"})
+                messages.append({"role": "user", "content": user_message})
                 answer = llm.invoke(messages)
                 response = {
                     "type": "faq",
