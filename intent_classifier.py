@@ -47,6 +47,20 @@ class IntentClassifier:
                 "Cửa hàng có mấy chi nhánh?",
                 "Chính sách bảo hành của cửa hàng",
                 "Có nhận ship hàng không?",
+                "Cửa hàng B là gì?",
+                "Về cửa hàng B",
+                "Thông tin về cửa hàng",
+                "Làm thế nào để liên hệ hỗ trợ?",
+                "Số điện thoại hỗ trợ là gì?",
+                "Hotline của cửa hàng",
+                "Làm sao để theo dõi đơn hàng?",
+                "Tôi muốn kiểm tra trạng thái đơn hàng",
+                "Quên mật khẩu phải làm sao?",
+                "Làm cách nào để đặt lại mật khẩu?",
+                "Quên mật khẩu",
+                "Ai là chủ sở hữu cửa hàng?",
+                "Có phải là cửa hàng B không?",
+                "CEO là ai?"
             ]
         }
 

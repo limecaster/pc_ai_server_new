@@ -1,0 +1,13 @@
+Theo dõi đơn hàng
+
+Bạn có thể theo dõi đơn hàng của mình qua các bước sau:
+1. Truy cập trang "Theo dõi đơn hàng".
+2. Nhập mã đơn hàng và địa chỉ email đã đăng ký.
+3. Nhấn "Tra cứu" để xem trạng thái mới nhất của đơn hàng.
+    3.1. Trong trường hợp bạn đã đăng nhập, và là người tạo đơn hàng thì có thể xem trạng thái đơn hàng bình thường.
+    3.2. Trong trường hợp bạn chưa đăng nhập, hoặc không phải là người tạo đơn hàng thì có thể xem trạng thái đơn hàng thông qua mã đơn hàng.
+        3.2.1. Điền email mà bạn đã đăng ký khi mua hàng.
+        3.2.2. Nhấn "Tra cứu", hệ thống sẽ gửi OTP đến email của bạn để xác nhận.
+        3.2.3. Nhập mã OTP để xác nhận danh tính.
+        3.2.4. Nhấn "Xác nhận" để xem trạng thái đơn hàng.
+4. Nếu có thắc mắc, vui lòng liên hệ bộ phận hỗ trợ khách hàng.
