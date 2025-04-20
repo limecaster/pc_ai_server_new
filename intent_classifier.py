@@ -34,6 +34,7 @@ class IntentClassifier:
                 "Intel core i5 12700F có tương thích với main MSI B560 không?",
                 "Mainboard Asus ROG Strix Z690-E Gaming WiFi hỗ trợ chuẩn RAM nào?",
                 "Tản nhiệt phù hợp cho CPU Ryzen 9 5900X",
+                "AMD Ryzen 7 7800X3D có tương thích với mainboard ASUS ROG Strix Z690-E Gaming WiFi không?"
             ],
             "faq": [
                 "Làm thế nào để chọn mainboard?",
