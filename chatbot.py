@@ -3,7 +3,6 @@ from pydantic import BaseModel
 from typing import List
 import requests
 from langchain_ollama import ChatOllama
-from neo4j_retriever import Neo4jRetriever
 from intent_classifier import IntentClassifier
 from fastapi.responses import StreamingResponse
 from load_documents import retrieve_faq_answer
@@ -27,13 +26,6 @@ else:
 
 #PC_BACKEND_URL = os.getenv('PC_BACKEND_URL', 'http://localhost:3001')
 PC_BACKEND_URL = "http://localhost:3001"
-
-# Initialize Neo4j and LLM
-neo4j_uri = os.getenv('NEO4J_URI', 'bolt://pc_neo4j:7687')
-neo4j_user = os.getenv('NEO4J_USER', 'neo4j')
-neo4j_password = os.getenv('NEO4J_PASSWORD', '12345678')
-
-neo4j = Neo4jRetriever(uri=neo4j_uri, user=neo4j_user, password=neo4j_password)
 
 LLM_MODEL = os.getenv("LLM_MODEL", "gemma3:4b")
 llm = ChatOllama(model=LLM_MODEL, tools=True)
