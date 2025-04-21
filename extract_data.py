@@ -18,9 +18,13 @@ matcher = Matcher(nlp.vocab)
 # Load environment variables and configure extraction method
 load_dotenv()
 EXTRACT_METHOD = os.getenv("EXTRACT_METHOD", "ner").lower()
-# Initialize LLM for component type extraction
 LLM_MODEL = os.getenv("LLM_MODEL", "gemma3:4b")
-llm = ChatOllama(model=LLM_MODEL)
+OLLAMA_URL = os.getenv("OLLAMA_URL", "http://ollama:11434")
+
+# Initialize LLM
+llm = ChatOllama(model=LLM_MODEL, api_base=OLLAMA_URL)
+
+
 SYSTEM_TYPE_PROMPT = """
 Extract from the given text:
 - PC component type: a PC component has exact, same name as one of the following: CPU; Motherboard; RAM; GraphicsCard (as GPU); InternalHardDrive (as SSD or HDD); CPUCooler (as cooler); Case; PowerSupply
@@ -154,28 +158,32 @@ class TextInput(BaseModel):
 async def extract_entities_api(input: TextInput):
     text = input.text
     if EXTRACT_METHOD == "llm":
-        # Use LLM to extract component type
-        messages = [
-            {"role": "system", "content": SYSTEM_TYPE_PROMPT},
-            {"role": "user", "content": text}
-        ]
-        llm_response = llm.invoke(messages)
-        component_type = llm_response.content.strip() if hasattr(llm_response, "content") else str(llm_response).strip()
-        # Extract JSON substring and parse
-        raw = component_type
-        start = raw.find('[')
-        end = raw.rfind(']') + 1
-        json_str = raw[start:end] if start >= 0 and end > start else raw
         try:
-            data = json.loads(json_str)
-        except json.JSONDecodeError:
-            # Fallback to Python literal
-            import ast
+            # Use LLM to extract component type
+            messages = [
+                {"role": "system", "content": SYSTEM_TYPE_PROMPT},
+                {"role": "user", "content": text}
+            ]
+            llm_response = llm.invoke(messages)
+            component_type = llm_response.content.strip() if hasattr(llm_response, "content") else str(llm_response).strip()
+            # Extract JSON substring and parse
+            raw = component_type
+            start = raw.find('[')
+            end = raw.rfind(']') + 1
+            json_str = raw[start:end] if start >= 0 and end > start else raw
             try:
-                data = ast.literal_eval(raw)
-            except Exception:
-                data = [(text, component_type)]
-        return {"data": data}
+                data = json.loads(json_str)
+            except json.JSONDecodeError:
+                # Fallback to Python literal
+                import ast
+                try:
+                    data = ast.literal_eval(raw)
+                except Exception:
+                    data = [(text, component_type)]
+            return {"data": data}
+        except Exception as e:
+            print(f"LLM error: {e}")
+            return {"data": []}
     else:
         entities = extract_entities(text)
         return {"data": entities}

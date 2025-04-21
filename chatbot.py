@@ -24,11 +24,12 @@ if env_path.exists():
 else:
     load_dotenv()
 
-#PC_BACKEND_URL = os.getenv('PC_BACKEND_URL', 'http://localhost:3001')
-PC_BACKEND_URL = "http://localhost:3001"
-
+PC_BACKEND_URL = os.getenv('PC_BACKEND_URL', 'http://localhost:3001')
+OLLAMA_URL = os.getenv('OLLAMA_URL', 'http://ollama:11434')
 LLM_MODEL = os.getenv("LLM_MODEL", "gemma3:4b")
-llm = ChatOllama(model=LLM_MODEL, tools=True)
+
+
+llm = ChatOllama(model=LLM_MODEL, api_base=OLLAMA_URL, tools=True)
 
 SYSTEM_PROMPT = """You are a customer support chatbot for a PC parts eCommerce website serving Vietnamese users, you don't need to answer in English translation for reference.
 Our website named "Cửa hàng B". Do not fabricate information or provide uncertain answers. If the data is unavailable, inform the user. 
