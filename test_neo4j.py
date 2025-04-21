@@ -37,10 +37,32 @@ def clear_label(label: str):
         session.run(f'MATCH (n:`{label}`) DELETE n')
     driver.close()
 
+def set_neo4j_price(name:str, label:str, price:any):
+    driver = GraphDatabase.driver('bolt://localhost:7687', auth=('neo4j', '12345678'))
+    with driver.session() as session:
+        session.run(f'MATCH (n:{label}) WHERE n.name = "{name}" SET n.price = 0 RETURN n')
+        result = session.run(f'MATCH (n:{label}) WHERE n.name = "{name}" RETURN n.price')
+        print(f'Price set for {name}: {result.single()["n.price"]}')
+    driver.close()
+
+def get_neo4j_price(name:str, label:str):
+    driver = GraphDatabase.driver('bolt://localhost:7687', auth=('neo4j', '12345678'))
+    with driver.session() as session:
+        result = session.run(f'MATCH (n:{label}) WHERE n.name="{name}" RETURN n.price')
+        return result.single()["n.price"]
+    driver.close()
+
+def validate_neo4j_label_price(label:str):
+    """Validate that the price of a label is set correctly."""
+    driver = GraphDatabase.driver('bolt://localhost:7687', auth=('neo4j', '12345678'))
+    with driver.session() as session:
+        result = session.run(f'MATCH (n:{label}) RETURN n.price')
+        # return all prices
+        return [record["n.price"] for record in result.data()]
+    driver.close()
+
 if __name__ == "__main__":
     try:
-        test_connection()
-        clear_label("idnullnameCPU")
-        clear_label("Product")
+        validate_neo4j_label_price("Motherboard")
     except Exception as e:
         print(f"Error connecting to Neo4j: {e}")

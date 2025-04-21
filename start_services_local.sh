@@ -5,6 +5,9 @@ echo "Starting services..."
 
 source ./.venv/scripts/activate
 
+# export EXTRACT_METHOD=ner
+
+
 # Start extract_data service 
 echo "Starting extract_data service on port 8000..."
 py extract_data.py &

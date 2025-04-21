@@ -11,6 +11,11 @@ import json
 from dotenv import load_dotenv
 from langchain_ollama import ChatOllama
 
+import logging
+
+logger = logging.getLogger(__name__)
+
+
 # Initialize SpaCy
 nlp = spacy.blank("vi")
 matcher = Matcher(nlp.vocab)
@@ -33,6 +38,7 @@ Extract from the given text:
 * Notice If GPU chipset detected (e.g., "NVIDIA RTX 3060 Ti"), return GPU
 Respond ONLY with a JSON array of [value, label] pairs, where label is one of the component labels, or BUDGET, or PURPOSE.
 Example: [["Intel i7-9700K","CPU"], ["15 triệu","BUDGET"], ["chơi game","PURPOSE"]]
+If you can't extract a value for a label, don't return that pair
 No additional text.
 """
 
@@ -180,12 +186,18 @@ async def extract_entities_api(input: TextInput):
                     data = ast.literal_eval(raw)
                 except Exception:
                     data = [(text, component_type)]
+            # Log the extracted data
+            print(f"Extracted data with LLM: {data}")
+            logger.info(f"Extracted data: {data}")
             return {"data": data}
         except Exception as e:
-            print(f"LLM error: {e}")
+            logger.error(f"LLM error: {e}")
             return {"data": []}
     else:
         entities = extract_entities(text)
+        # Log the extracted entities
+        print(f"Extracted entities with NER: {entities}")
+        logger.info(f"Extracted entities: {entities}")
         return {"data": entities}
 
 if __name__ == "__main__":

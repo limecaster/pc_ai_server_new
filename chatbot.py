@@ -97,7 +97,7 @@ async def chatbot_endpoint(request: ChatRequest):
                 Tôi có thể hỗ trợ gì cho bạn?"""
             }
             status = "success"
-            track_chatbot_event("greeting", user_message, status, sessionId)
+            track_chatbot_event("chatbot_greeting", user_message, status, sessionId)
         elif intent == "auto_build":
             try:
                 nestjs_response = requests.post(f"{PC_BACKEND_URL}/build/single-auto-build", json={"userInput": user_message}).json()
@@ -110,7 +110,7 @@ async def chatbot_endpoint(request: ChatRequest):
                 response = "Xin lỗi, hệ thống đang gặp sự cố. Vui lòng thử lại sau."
                 status = "error"
             finally:
-                track_chatbot_event("auto_build", user_message, status, sessionId)
+                track_chatbot_event("chatbot_auto_build", user_message, status, sessionId)
         elif intent == "compatibility":
             try:
                 extraction_prompt = f"""
@@ -164,7 +164,7 @@ Format:
                         status = "error"
                         return response
                 finally:
-                    track_chatbot_event("product_extraction", user_message, status, sessionId)
+                    track_chatbot_event("chatbot_compatibility", user_message, status, sessionId)
                 resp = requests.get(
                     f"{PC_BACKEND_URL}/build/compatibility",
                     params={
@@ -205,7 +205,7 @@ Format:
                 }
                 status = "error"
             finally:
-                track_chatbot_event("compatibility", user_message, status, sessionId)
+                track_chatbot_event("chatbot_compatibility", user_message, status, sessionId)
         
         # If the intent is about FAQs, call the LLM
         elif intent == "faq":
@@ -229,7 +229,7 @@ Format:
                 }
                 status = "error"
             finally:
-                track_chatbot_event("faq", user_message, status, sessionId)
+                track_chatbot_event("chatbot_faq", user_message, status, sessionId)
         
         # If the intent is unknown, return a default response
         else:
@@ -238,7 +238,7 @@ Format:
                 "data": "Xin lỗi, tôi không được huấn luyện để trả lời câu hỏi này."
             }   
             status = "error"
-            track_chatbot_event("unknown", user_message, status, sessionId)
+            track_chatbot_event("chatbot_unknown", user_message, status, sessionId)
         return {"response": response}
     except Exception as e:
         print(e)
