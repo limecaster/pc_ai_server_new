@@ -25,7 +25,8 @@ class IntentClassifier:
                 "Tôi muốn build PC chơi game, giá khoảng 25 triệu",
                 "PC chơi game giá rẻ, giá khoảng 10 triệu",
                 "Máy tính bàn để chinh sửa video, giá khoảng 20 triệu",
-                "PC chơi game 25tr với i7-9700kf"
+                "PC chơi game 25tr với i7-9700kf",
+                "pc chơi game triệu"
             ],
             "compatibility": [
                 "Main này có chạy được Ryzen 7 không?",
