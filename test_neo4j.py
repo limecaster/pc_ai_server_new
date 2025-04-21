@@ -8,7 +8,7 @@ def test_connection():
     with driver.session() as session:
         print('Connected to Neo4j successfully!')
         print('\nNode count by label:')
-        result = session.run('MATCH (n) RETURN labels(n) as labels, count(n) as count LIMIT 10')
+        result = session.run('MATCH (n) RETURN labels(n) as labels, count(n) as count')
         for record in result:
             print(f'{record["labels"]}: {record["count"]} nodes')
     
@@ -29,8 +29,18 @@ def test_connection():
     # Close the driver connection
     driver.close()
 
+def clear_label(label: str):
+    """Clear all nodes with a specific label."""
+    driver = GraphDatabase.driver('bolt://localhost:7687', auth=('neo4j', '12345678'))
+    with driver.session() as session:
+        # Use Cypher label syntax for correct label matching
+        session.run(f'MATCH (n:`{label}`) DELETE n')
+    driver.close()
+
 if __name__ == "__main__":
     try:
         test_connection()
+        clear_label("idnullnameCPU")
+        clear_label("Product")
     except Exception as e:
-        print(f"Error connecting to Neo4j: {e}") 
+        print(f"Error connecting to Neo4j: {e}")
