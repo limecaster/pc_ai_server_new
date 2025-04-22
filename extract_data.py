@@ -31,15 +31,20 @@ llm = ChatOllama(model=LLM_MODEL, base_url=OLLAMA_URL)
 
 
 SYSTEM_TYPE_PROMPT = """
-Extract from the given text:
-- PC component type: a PC component has exact, same name as one of the following: CPU; Motherboard; RAM; GraphicsCard (as GPU); InternalHardDrive (as SSD or HDD); CPUCooler (as cooler); Case; PowerSupply
-- Budget: numbers with units (triệu, vnd, đồng)
-- Purpose: e.g., chơi game; thiết kế; văn phòng.
-* Notice If GPU chipset detected (e.g., "NVIDIA RTX 3060 Ti"), return GPU
-Respond ONLY with a JSON array of [value, label] pairs, where label is one of the component labels, or BUDGET, or PURPOSE.
-Example: [["Intel i7-9700K","CPU"], ["15 triệu","BUDGET"], ["chơi game","PURPOSE"]]
-If you can't extract a value for a label, don't return that pair
-No additional text.
+From the input text, extract the following information:
+
+- PC component type: Only include components with names exactly matching one of: CPU, Motherboard, RAM, GraphicsCard (or GPU), InternalHardDrive (SSD or HDD), CPUCooler (cooler), Case, PowerSupply.
+- Budget: Any numbers with currency units (triệu, vnd, đồng).
+- Purpose: User intent, such as chơi game, thiết kế, văn phòng.
+
+If a GPU chipset (e.g., "NVIDIA RTX 3060 Ti") is detected, label it as GPU.
+
+Respond ONLY with a JSON array of [value, label] pairs. Each label must be one of the specified component types, BUDGET, or PURPOSE.
+
+Example: [["Intel i7-9700K", "CPU"], ["15 triệu", "BUDGET"], ["chơi game", "PURPOSE"]]
+
+Do not include any pairs if you cannot extract a value for that label.
+Return only the JSON array, with no extra text or explanation.
 """
 
 def preprocess_text(text):
