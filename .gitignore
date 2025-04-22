@@ -9,10 +9,8 @@ faqs/
 .venv/
 venv/
 env/
+.env.*
 .env
-.env.production
-.env.local
-.env.development
 
 .pytest_cache_dir
 .pytest_cache

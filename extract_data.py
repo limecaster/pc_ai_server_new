@@ -25,9 +25,9 @@ load_dotenv()
 EXTRACT_METHOD = os.getenv("EXTRACT_METHOD", "ner").lower()
 LLM_MODEL = os.getenv("LLM_MODEL", "gemma3:4b")
 OLLAMA_URL = os.getenv("OLLAMA_URL", "http://ollama:11434")
-
+print("OLLAMA_URL:", OLLAMA_URL)
 # Initialize LLM
-llm = ChatOllama(model=LLM_MODEL, api_base=OLLAMA_URL)
+llm = ChatOllama(model=LLM_MODEL, base_url=OLLAMA_URL)
 
 
 SYSTEM_TYPE_PROMPT = """

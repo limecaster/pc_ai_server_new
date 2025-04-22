@@ -19,6 +19,8 @@ python /app/chatbot.py &
 echo "Creating health check file..."
 echo "OK" > /app/health.txt
 
+# LLM connection test script is available at /app/test_llm_connection.py
+
 # Keep the container running
 echo "All services started. Container is running..."
 tail -f /dev/null

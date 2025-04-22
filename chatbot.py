@@ -11,6 +11,7 @@ import json
 from dotenv import load_dotenv
 import pathlib
 import datetime
+import traceback  # <-- Added for better error logging
 
 app = FastAPI()
 
@@ -29,7 +30,7 @@ OLLAMA_URL = os.getenv('OLLAMA_URL', 'http://ollama:11434')
 LLM_MODEL = os.getenv("LLM_MODEL", "gemma3:4b")
 
 
-llm = ChatOllama(model=LLM_MODEL, api_base=OLLAMA_URL, tools=True)
+llm = ChatOllama(model=LLM_MODEL, base_url=OLLAMA_URL, tools=True)
 
 SYSTEM_PROMPT = """You are a customer support chatbot for a PC parts eCommerce website serving Vietnamese users, you don't need to answer in English translation for reference.
 Our website named "Cửa hàng B". Do not fabricate information or provide uncertain answers. If the data is unavailable, inform the user. 
@@ -126,14 +127,26 @@ Format:
   \"product2\": {{\"name\": \"...\", \"type\": \"...\"}}
 }}
 """
-                
                 messages = [
                     {"role": "system", "content": extraction_prompt},
                     {"role": "user", "content": user_message}
                 ]
                 status = "success"
                 try:
-                    response = llm.invoke(messages)
+                    try:
+                        response = llm.invoke(messages)
+                    except Exception as e:
+                        print("[LLM ERROR - compatibility]")
+                        print(f"Exception: {e}")
+                        print(f"Traceback: {traceback.format_exc()}")
+                        print(f"OLLAMA_URL: {OLLAMA_URL}")
+                        print(f"LLM_MODEL: {LLM_MODEL}")
+                        response = {
+                            "type": "error",
+                            "data": f"Xin lỗi, hệ thống LLM gặp sự cố: {str(e)}. URL: {OLLAMA_URL}, Model: {LLM_MODEL}"
+                        }
+                        status = "error"
+                        return {"response": response}
                     import re
                     import json
                     content = response.content if hasattr(response, 'content') else str(response)
@@ -172,7 +185,6 @@ Format:
                         "product2": json.dumps(entities["product2"])
                     }
                 )
-                
                 # Check if request was successful
                 if resp.status_code != 200:
                     response = {
@@ -199,9 +211,12 @@ Format:
                         }
             except Exception as e:
                 print("Exception in compatibility check", e)
+                print(f"Traceback: {traceback.format_exc()}")
+                print(f"OLLAMA_URL: {OLLAMA_URL}")
+                print(f"LLM_MODEL: {LLM_MODEL}")
                 response = {
                     "type": "error",
-                    "data": "Xin lỗi bạn, hệ thống đang gặp sự cố. Vui lòng thử lại sau."
+                    "data": f"Xin lỗi bạn, hệ thống đang gặp sự cố. LLM: {str(e)}. URL: {OLLAMA_URL}, Model: {LLM_MODEL}"
                 }
                 status = "error"
             finally:
@@ -217,15 +232,33 @@ Format:
                     messages.append({"role": "user", "content": msg})
                 messages.append({"role": "system", "content": f"Dữ liệu tham khảo: {faq_context}"})
                 messages.append({"role": "user", "content": user_message})
-                answer = llm.invoke(messages)
+                try:
+                    answer = llm.invoke(messages)
+                except Exception as e:
+                    print("[LLM ERROR - faq]")
+                    print(f"Exception: {e}")
+                    print(f"Traceback: {traceback.format_exc()}")
+                    print(f"OLLAMA_URL: {OLLAMA_URL}")
+                    print(f"LLM_MODEL: {LLM_MODEL}")
+                    response = {
+                        "type": "error",
+                        "data": f"Xin lỗi bạn, hệ thống LLM gặp sự cố: {str(e)}. URL: {OLLAMA_URL}, Model: {LLM_MODEL}"
+                    }
+                    status = "error"
+                    track_chatbot_event("chatbot_faq", user_message, status, sessionId)
+                    return {"response": response}
                 response = {
                     "type": "faq",
                     "data": answer.content
                 }
-            except Exception:
+            except Exception as e:
+                print("Exception in FAQ intent", e)
+                print(f"Traceback: {traceback.format_exc()}")
+                print(f"OLLAMA_URL: {OLLAMA_URL}")
+                print(f"LLM_MODEL: {LLM_MODEL}")
                 response = {
                     "type": "error",
-                    "data": "Xin lỗi bạn, hệ thống đang gặp sự cố. Vui lòng thử lại sau."
+                    "data": f"Xin lỗi bạn, hệ thống đang gặp sự cố. LLM: {str(e)}. URL: {OLLAMA_URL}, Model: {LLM_MODEL}"
                 }
                 status = "error"
             finally:
@@ -242,6 +275,9 @@ Format:
         return {"response": response}
     except Exception as e:
         print(e)
+        print(f"Traceback: {traceback.format_exc()}")
+        print(f"OLLAMA_URL: {OLLAMA_URL}")
+        print(f"LLM_MODEL: {LLM_MODEL}")
         raise HTTPException(status_code=500, detail="Internal server error")
 
 def stream_faq_response(llm, user_message: str):
@@ -252,8 +288,17 @@ def stream_faq_response(llm, user_message: str):
         {"role": "system", "content": f"Dữ liệu tham khảo: {faq_context}"},
         {"role": "user", "content": user_message}
     ]
-    for chunk in llm.invoke_stream(messages):
-        yield chunk + " "
+    try:
+        for chunk in llm.invoke_stream(messages):
+            yield chunk + " "
+    except Exception as e:
+        import traceback
+        print("[LLM STREAM ERROR - faq_stream]")
+        print(f"Exception: {e}")
+        print(f"Traceback: {traceback.format_exc()}")
+        print(f"OLLAMA_URL: {OLLAMA_URL}")
+        print(f"LLM_MODEL: {LLM_MODEL}")
+        yield f"[ERROR] Xin lỗi, hệ thống LLM gặp sự cố: {str(e)}. URL: {OLLAMA_URL}, Model: {LLM_MODEL}"
 
 @app.get("/faq-stream")
 def faq_stream(user_message: str):
