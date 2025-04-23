@@ -12,6 +12,7 @@ from dotenv import load_dotenv
 import pathlib
 import datetime
 import traceback  # <-- Added for better error logging
+import asyncio
 
 app = FastAPI()
 
@@ -28,6 +29,7 @@ else:
 PC_BACKEND_URL = os.getenv('PC_BACKEND_URL', 'http://localhost:3001')
 OLLAMA_URL = os.getenv('OLLAMA_URL', 'http://ollama:11434')
 LLM_MODEL = os.getenv("LLM_MODEL", "gemma3:4b")
+LLM_TIMEOUT = float(os.getenv("LLM_TIMEOUT", 10))
 
 
 llm = ChatOllama(model=LLM_MODEL, base_url=OLLAMA_URL, tools=True)
@@ -134,7 +136,17 @@ Format:
                 status = "success"
                 try:
                     try:
-                        response = llm.invoke(messages)
+                        # Use timeout for LLM invoke
+                        response = await asyncio.wait_for(asyncio.to_thread(llm.invoke, messages), timeout=LLM_TIMEOUT)
+                    except asyncio.TimeoutError:
+                        print("[LLM TIMEOUT - compatibility]")
+                        response = {
+                            "type": "error",
+                            "data": "Xin lỗi bạn, hệ thống đang gặp sự cố. LLM"
+                        }
+                        status = "error"
+                        track_chatbot_event("chatbot_compatibility", user_message, status, sessionId)
+                        return {"response": response}
                     except Exception as e:
                         print("[LLM ERROR - compatibility]")
                         print(f"Exception: {e}")
@@ -143,9 +155,10 @@ Format:
                         print(f"LLM_MODEL: {LLM_MODEL}")
                         response = {
                             "type": "error",
-                            "data": f"Xin lỗi, hệ thống LLM gặp sự cố: {str(e)}. URL: {OLLAMA_URL}, Model: {LLM_MODEL}"
+                            "data": f"Xin lỗi bạn, hệ thống LLM gặp sự cố: {str(e)}"
                         }
                         status = "error"
+                        track_chatbot_event("chatbot_compatibility", user_message, status, sessionId)
                         return {"response": response}
                     import re
                     import json
@@ -175,7 +188,7 @@ Format:
                             "data": "Xin lỗi, hệ thống không thể trích xuất thông tin sản phẩm từ câu hỏi của bạn. Vui lòng thử lại."
                         }
                         status = "error"
-                        return response
+                        return {"response": response}
                 finally:
                     track_chatbot_event("chatbot_compatibility", user_message, status, sessionId)
                 resp = requests.get(
@@ -204,10 +217,7 @@ Format:
                     else:
                         response = {
                             "type": "text", 
-                            "data": """Không thể kết hợp các sản phẩm này.
-                            Để chắc chắn bạn hãy gửi lại thông tin với định dạng:
-                            < Tên đầy đủ sản phẩm 1 + Loại sản phẩm 1> <Tên đầy đủ sản phẩm 2 + Loại sản phẩm 2>.
-                            Hoặc bạn có thể sử dụng tính năng "xây dựng cấu hình" của chúng tôi."""
+                            "data": """Không thể kết hợp các sản phẩm này.\nĐể chắc chắn bạn hãy gửi lại thông tin với định dạng:\n< Tên đầy đủ sản phẩm 1 + Loại sản phẩm 1> <Tên đầy đủ sản phẩm 2 + Loại sản phẩm 2>.\nHoặc bạn có thể sử dụng tính năng \"xây dựng cấu hình\" của chúng tôi."""
                         }
             except Exception as e:
                 print("Exception in compatibility check", e)
@@ -233,7 +243,17 @@ Format:
                 messages.append({"role": "system", "content": f"Dữ liệu tham khảo: {faq_context}"})
                 messages.append({"role": "user", "content": user_message})
                 try:
-                    answer = llm.invoke(messages)
+                    # Use timeout for LLM invoke
+                    answer = await asyncio.wait_for(asyncio.to_thread(llm.invoke, messages), timeout=LLM_TIMEOUT)
+                except asyncio.TimeoutError:
+                    print("[LLM TIMEOUT - faq]")
+                    response = {
+                        "type": "error",
+                        "data": "Xin lỗi bạn, hệ thống đang gặp sự cố. LLM"
+                    }
+                    status = "error"
+                    track_chatbot_event("chatbot_faq", user_message, status, sessionId)
+                    return {"response": response}
                 except Exception as e:
                     print("[LLM ERROR - faq]")
                     print(f"Exception: {e}")

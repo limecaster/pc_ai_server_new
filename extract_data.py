@@ -12,6 +12,7 @@ from dotenv import load_dotenv
 from langchain_ollama import ChatOllama
 
 import logging
+import asyncio
 
 logger = logging.getLogger(__name__)
 
@@ -26,6 +27,7 @@ EXTRACT_METHOD = os.getenv("EXTRACT_METHOD", "ner").lower()
 LLM_MODEL = os.getenv("LLM_MODEL", "gemma3:4b")
 OLLAMA_URL = os.getenv("OLLAMA_URL", "http://ollama:11434")
 print("OLLAMA_URL:", OLLAMA_URL)
+LLM_TIMEOUT = float(os.getenv("LLM_TIMEOUT", 10))
 # Initialize LLM
 llm = ChatOllama(model=LLM_MODEL, base_url=OLLAMA_URL)
 
@@ -42,8 +44,8 @@ If a GPU chipset (e.g., "NVIDIA RTX 3060 Ti") is detected, label it as GPU.
 Respond ONLY with a JSON array of [value, label] pairs. Each label must be one of the specified component types, BUDGET, or PURPOSE.
 
 Example: [["Intel i7-9700K", "CPU"], ["15 triệu", "BUDGET"], ["chơi game", "PURPOSE"]]
-
-Do not include any pairs if you cannot extract a value for that label.
+Do not include any pairs if you cannot extract a value for that label. 
+Example: Don't include ["CPU", "CPU"], ["GPU", "GPU"], etc.
 Return only the JSON array, with no extra text or explanation.
 """
 
@@ -170,12 +172,12 @@ async def extract_entities_api(input: TextInput):
     text = input.text
     if EXTRACT_METHOD == "llm":
         try:
-            # Use LLM to extract component type
+            # Use LLM to extract component type with a timeout
             messages = [
                 {"role": "system", "content": SYSTEM_TYPE_PROMPT},
                 {"role": "user", "content": text}
             ]
-            llm_response = llm.invoke(messages)
+            llm_response = await asyncio.wait_for(llm.invoke(messages), timeout=LLM_TIMEOUT)
             component_type = llm_response.content.strip() if hasattr(llm_response, "content") else str(llm_response).strip()
             # Extract JSON substring and parse
             raw = component_type
@@ -185,25 +187,26 @@ async def extract_entities_api(input: TextInput):
             try:
                 data = json.loads(json_str)
             except json.JSONDecodeError:
-                # Fallback to Python literal
                 import ast
                 try:
                     data = ast.literal_eval(raw)
                 except Exception:
                     data = [(text, component_type)]
-            # Log the extracted data
             print(f"Extracted data with LLM: {data}")
             logger.info(f"Extracted data: {data}")
             return {"data": data}
         except Exception as e:
-            logger.error(f"LLM error: {e}")
-            return {"data": []}
-    else:
+            logger.warning(f"LLM error or timeout: {e}. Falling back to NER.")
+
+    # Fallback to NER if LLM fails or times out
+    try:
         entities = extract_entities(text)
-        # Log the extracted entities
         print(f"Extracted entities with NER: {entities}")
         logger.info(f"Extracted entities: {entities}")
         return {"data": entities}
+    except Exception as e:
+        logger.error(f"NER error: {e}")
+        return {"data": []}
 
 if __name__ == "__main__":
     import uvicorn
