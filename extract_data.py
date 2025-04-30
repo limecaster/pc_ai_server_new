@@ -177,7 +177,11 @@ async def extract_entities_api(input: TextInput):
                 {"role": "system", "content": SYSTEM_TYPE_PROMPT},
                 {"role": "user", "content": text}
             ]
-            llm_response = await asyncio.wait_for(llm.invoke(messages), timeout=LLM_TIMEOUT)
+            loop = asyncio.get_running_loop()
+            llm_response = await asyncio.wait_for(
+                loop.run_in_executor(None, llm.invoke, messages),
+                timeout=LLM_TIMEOUT
+            )
             component_type = llm_response.content.strip() if hasattr(llm_response, "content") else str(llm_response).strip()
             # Extract JSON substring and parse
             raw = component_type

@@ -248,90 +248,57 @@ class RecommendationModel:
         limit: int = 10
     ) -> List[str]:
         """
-        Get advanced recommendations using User_Behavior and Viewed_Products data
-        
-        This method provides more personalized recommendations by using:
-        1. User's viewing history (Viewed_Products)
-        2. User's behavior data (clicks, cart additions, etc.)
-        3. Category preferences based on behavior
-        4. Fallback to popular products when not enough data is available
-        
-        Args:
-            customer_id: Customer ID for logged-in users
-            session_id: Session ID for anonymous users
-            category: Optional category to filter recommendations
-            limit: Maximum number of recommendations to return
-            
-        Returns:
-            List of recommended product IDs
+        Simple advanced recommendation:
+        For authenticated users, get 5 latest viewed products from Viewed_Products.
+        For guests, get 5 latest from User_Behavior (event_type='product_viewed').
+        For each, use get_recommendations to find similar products, combine, deduplicate, and return up to `limit`.
         """
         try:
-            logger.info(f"Getting advanced recommendations for customer_id={customer_id}, session_id={session_id}, category={category}")
-            
-            # Initialize result list
-            recommended_product_ids = []
-            
-            # Connect to database
+            logger.info(f"[Simple Advanced] Getting recommendations for customer_id={customer_id}, session_id={session_id}, category={category}")
             conn = get_db_connection()
             if not conn:
                 logger.error("Failed to connect to database for advanced recommendations")
                 return self._fallback_to_popular_products(limit, category)
-            
             try:
-                # Get recommendations based on user type (logged in vs anonymous)
+                # Step 1: Get up to 5 latest viewed products
+                viewed_products = []
                 if customer_id:
-                    # For logged-in users, use their Viewed_Products and behavior data
-                    viewed_products = self._get_customer_viewed_products(conn, customer_id, limit * 2)
-                    behavior_products = self._get_customer_behavior_products(conn, customer_id, limit * 2)
-                    
-                    # Combine and prioritize products
-                    if viewed_products or behavior_products:
-                        all_products = set(viewed_products + behavior_products)
-                        recommended_product_ids = list(all_products)[:limit]
-                    
+                    viewed_products = self._get_customer_viewed_products(conn, customer_id, 5)
                 elif session_id:
-                    # For anonymous users, use only their behavior data from current session
-                    behavior_products = self._get_session_behavior_products(conn, session_id, limit * 2)
-                    if behavior_products:
-                        recommended_product_ids = behavior_products[:limit]
-                
-                # If we don't have enough recommendations, get category-based recommendations
-                if len(recommended_product_ids) < limit:
-                    # Find user's preferred categories
-                    preferred_categories = self._get_preferred_categories(conn, customer_id, session_id)
-                    
-                    # If specific category requested, prioritize it
-                    if category and category not in preferred_categories:
-                        preferred_categories.insert(0, category)
-                    
-                    # Get products from preferred categories
-                    for cat in preferred_categories:
-                        if len(recommended_product_ids) >= limit:
+                    # For guests, get from User_Behavior table
+                    cursor = conn.cursor()
+                    cursor.execute('''
+                        SELECT entity_id
+                        FROM "User_Behavior"
+                        WHERE session_id = %s AND event_type = 'product_viewed' AND entity_type = 'product'
+                        ORDER BY created_at DESC
+                        LIMIT 5
+                    ''', (session_id,))
+                    viewed_products = [row[0] for row in cursor.fetchall()]
+                    cursor.close()
+                else:
+                    logger.warning("No customer_id or session_id provided for recommendations.")
+                    return self._fallback_to_popular_products(limit, category)
+                if not viewed_products:
+                    logger.info("No viewed products found; fallback to popular.")
+                    return self._fallback_to_popular_products(limit, category)
+                # Step 2: For each viewed product, get similar products
+                recommended = []
+                seen = set(viewed_products)
+                for pid in viewed_products:
+                    sims = self.get_recommendations(pid, category=category, limit=limit)
+                    for rec in sims:
+                        if rec not in seen and rec not in recommended:
+                            recommended.append(rec)
+                        if len(recommended) >= limit:
                             break
-                            
-                        category_products = self._get_top_products_by_category(conn, cat, limit)
-                        for product_id in category_products:
-                            if product_id not in recommended_product_ids:
-                                recommended_product_ids.append(product_id)
-                                if len(recommended_product_ids) >= limit:
-                                    break
-                
-                # If we still don't have enough, add popular products
-                if len(recommended_product_ids) < limit:
-                    popular_products = self._get_popular_products(conn, limit, recommended_product_ids)
-                    for product_id in popular_products:
-                        if product_id not in recommended_product_ids:
-                            recommended_product_ids.append(product_id)
-                            if len(recommended_product_ids) >= limit:
-                                break
-                
-                logger.info(f"Found {len(recommended_product_ids)} advanced recommendations")
-                return recommended_product_ids[:limit]
-                
+                    if len(recommended) >= limit:
+                        break
+                logger.info(f"Returning {len(recommended)} advanced recommendations.")
+                return recommended[:limit]
             finally:
                 conn.close()
                 logger.info("Database connection closed")
-                
         except Exception as e:
             logger.error(f"Error generating advanced recommendations: {str(e)}")
             logger.error(traceback.format_exc())
